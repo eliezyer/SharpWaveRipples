@@ -200,7 +200,7 @@ void PhaseDetector::process(AudioSampleBuffer& buffer,
             {
                 double STD = pow ( (PACOTE[index] - MED ), 2.00) + STD;
             }
-            STD = sqrt ( (STD / ( getNumSamples(module.inputChan) - 1.00 )) + 0.7 );
+            STD = sqrt ( (STD / ( getNumSamples(module.inputChan) - 1.00 )) );
 
             for (int teste = 0; teste < getNumSamples(module.inputChan) - 2; teste++)
             {
@@ -306,4 +306,4 @@ void PhaseDetector::estimateFrequency()
 
     // estimatedFrequency = getSampleRate()/(float(sum)/float(N));
 
- 
+
