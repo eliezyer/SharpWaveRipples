@@ -20,7 +20,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-
+ 
 #include <stdio.h>
 #include <math.h>
 #include "PhaseDetector.h"
@@ -172,6 +172,9 @@ void PhaseDetector::process(AudioSampleBuffer& buffer,
 {
 
     checkForEvents(events);
+    //int tamanho = 5000;
+    //AudioSampleBuffer(1, tamanho);
+    //buffer.setSize(1, tamanho,true,false,false);
     // loop through the modules
     for (int i = 0; i < modules.size(); i++)
     {
@@ -183,31 +186,50 @@ void PhaseDetector::process(AudioSampleBuffer& buffer,
             module.inputChan < buffer.getNumChannels())
         {
            double PACOTE[getNumSamples(module.inputChan)];
-            for (int PAC = 1; PAC < getNumSamples(module.inputChan) - 1; PAC++)
+            for (int PAC = 0; PAC < getNumSamples(module.inputChan); PAC++)
             {
-            PACOTE[PAC - 1] = *buffer.getReadPointer(module.inputChan,PAC);
+            PACOTE[PAC] = *buffer.getReadPointer(module.inputChan,PAC);
+            }
+            
+            double MAX = 0.00;
+            for (int auxInd = 0; auxInd < getNumSamples(module.inputChan); auxInd++)
+            {
+                if (PACOTE[auxInd] > MAX)
+                {
+                    MAX = PACOTE[auxInd];
+                }
             }
             
             double MED = 0.00;
-            for (int ind = 0; ind < getNumSamples(module.inputChan) - 2; ind++)
+            for (int ind = 0; ind < getNumSamples(module.inputChan); ind++)
             {
-                double MED = PACOTE[ind] + MED;
-                
-            }
-            MED = MED / getNumSamples(module.inputChan);
-            double STD = 0.00;
-            for (int index = 0; index < getNumSamples(module.inputChan) - 2; index++)
-            {
-                double STD = pow ( (PACOTE[index] - MED ), 2.00) + STD;
-            }
-            STD = sqrt ( (STD / ( getNumSamples(module.inputChan) - 1.00 )) );
-
-            for (int teste = 0; teste < getNumSamples(module.inputChan) - 2; teste++)
-            {
-            std::cout.precision(5);
-            std::cout << "PACOTE["<<teste<<"]:"<< PACOTE[teste] << std::endl;
-            }
+                MED += PACOTE[ind];
             
+            }
+            MED = MED / ( getNumSamples(module.inputChan) );
+            
+            double STD = 0.00;
+            for (int index = 0; index < getNumSamples(module.inputChan); index++)
+            {
+                STD += pow ( (PACOTE[index] - MED ), 2.00);
+
+            }
+            //std::cout << STD << std::endl;
+            STD = sqrt ( (STD / ( getNumSamples(module.inputChan) - 1.00 )));
+
+            std::cout.precision(5);
+            //std::cout << "PACOTE: " << BUFF << std::endl;
+            //for (double indice = 0; indice < getNumSamples(module.inputChan);indice++)
+            //{
+                std::cout << "MED: "<< MED << std::endl;
+                std::cout << "STD: "<< STD << std::endl;
+                std::cout << "MAX: "<< MAX << std::endl;
+                std::cout << "NSa: "<< getNumSamples(module.inputChan) << std::endl;
+            //for (int index = 0; index < getNumSamples(module.inputChan)-50;index++)
+            //{
+               // std::cout << "SAMP[0]"<< PACOTE[700] << std::endl;
+            //}
+                //}
             for (int i = 0; i < getNumSamples(module.inputChan); i++)
             {
                 const float sample = *buffer.getReadPointer(module.inputChan, i);
@@ -216,7 +238,7 @@ void PhaseDetector::process(AudioSampleBuffer& buffer,
                 {
                     if (module.type == PEAK)
                     {
-                        std::cout << "GOT EVENT." << std::endl;
+                       // std::cout << "GOT EVENT." << std::endl;
                         addEvent(events, TTL, i, 1, module.outputChan);
                         module.samplesSinceTrigger = 0;
                         module.wasTriggered = true;
@@ -307,3 +329,4 @@ void PhaseDetector::estimateFrequency()
     // estimatedFrequency = getSampleRate()/(float(sum)/float(N));
 
 
+ 
