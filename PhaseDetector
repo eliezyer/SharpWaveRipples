@@ -60,9 +60,16 @@ void PhaseDetector::addModule()
     m.samplesSinceTrigger = 5000;
     m.wasTriggered = false;
     m.phase = NO_PHASE;
+    m.cntLimits = 0;
+    m.SR = AudioProcessor::getSampleRate();
+    
 
+    
+    
     modules.add(m);
+
 }
+
 
 void PhaseDetector::setActiveModule(int i)
 {
@@ -170,75 +177,104 @@ void PhaseDetector::handleEvent(int eventType, MidiMessage& event, int sampleNum
 void PhaseDetector::process(AudioSampleBuffer& buffer,
                             MidiBuffer& events)
 {
-
+    int TESTE;
+    int MEDarr[86]; 
+    int STDarr[86];
+    int OldMED[86];
+    int OldSTD[86];
     checkForEvents(events);
-    //int tamanho = 5000;
-    //AudioSampleBuffer(1, tamanho);
-    //buffer.setSize(1, tamanho,true,false,false);
     // loop through the modules
     for (int i = 0; i < modules.size(); i++)
     {
-        DetectorModule& module = modules.getReference(i);
-
+      DetectorModule& module = modules.getReference(i);
+ 
+                 
         // check to see if it's active and has a channel
         if (module.isActive && module.outputChan >= 0 &&
             module.inputChan >= 0 &&
             module.inputChan < buffer.getNumChannels())
-        {
-           double PACOTE[getNumSamples(module.inputChan)];
-            for (int PAC = 0; PAC < getNumSamples(module.inputChan); PAC++)
-            {
-            PACOTE[PAC] = *buffer.getReadPointer(module.inputChan,PAC);
-            }
-            
-            double MAX = 0.00;
-            for (int auxInd = 0; auxInd < getNumSamples(module.inputChan); auxInd++)
-            {
-                if (PACOTE[auxInd] > MAX)
-                {
-                    MAX = PACOTE[auxInd];
-                }
-            }
-            
-            double MED = 0.00;
-            for (int ind = 0; ind < getNumSamples(module.inputChan); ind++)
-            {
-                MED += PACOTE[ind];
-            
-            }
-            MED = MED / ( getNumSamples(module.inputChan) );
-            
-            double STD = 0.00;
-            for (int index = 0; index < getNumSamples(module.inputChan); index++)
-            {
-                STD += pow ( (PACOTE[index] - MED ), 2.00);
+           {
+                    int PACOTEsnd[getNumSamples(module.inputChan)];
 
-            }
-            //std::cout << STD << std::endl;
-            STD = sqrt ( (STD / ( getNumSamples(module.inputChan) - 1.00 )));
+                    for (int PAC = 0; PAC < getNumSamples(module.inputChan); PAC++)
+                    {
+                        PACOTEsnd[PAC] = *buffer.getReadPointer(module.inputChan,PAC);
+                    }
+                    double MED = 0.00;
+                    for (int ind = 0; ind < getNumSamples(module.inputChan); ind++)
+                    {
+                        MED += PACOTEsnd[ind];
+            
+                    }
+                    MED = MED / ( getNumSamples(module.inputChan) );
+            
+                    double STD = 0.00;
+                    for (int index = 0; index < getNumSamples(module.inputChan); index++)
+                    {
+                        STD += pow( (PACOTEsnd[index] - MED ), 2.00);
 
-            std::cout.precision(5);
-            //std::cout << "PACOTE: " << BUFF << std::endl;
-            //for (double indice = 0; indice < getNumSamples(module.inputChan);indice++)
-            //{
-                std::cout << "MED: "<< MED << std::endl;
-                std::cout << "STD: "<< STD << std::endl;
-                std::cout << "MAX: "<< MAX << std::endl;
-                std::cout << "NSa: "<< getNumSamples(module.inputChan) << std::endl;
-            //for (int index = 0; index < getNumSamples(module.inputChan)-50;index++)
-            //{
-               // std::cout << "SAMP[0]"<< PACOTE[700] << std::endl;
-            //}
-                //}
+                    }
+                    double STD1;
+                    double MED1;
+                    STD1 = STD;
+                    MED1 = MED;
+                        double MEDlong = 0.00;
+                        double STDlong = 0.00;
+                    //STD = sqrt ( (STD / ( (getNumSamples(module.inputChan)) - 1.00 )));
+                    if (module.cntLimits < 86)
+                    {
+                            std::cout<<"Inside, STD: " <<STD<<std::endl;
+                           MEDarr[module.cntLimits] = MED1;
+                           STDarr[module.cntLimits] = STD1;
+                           module.cntLimits += 1;
+                    }
+              
+                    else
+                    {
+                        for(int ind = 0; ind < 86; ind++)
+                        {
+                            OldMED[ind] = MEDarr[ind];
+                            OldSTD[ind] = STDarr[ind];
+                        }
+                        
+                        for(int ind = 0; ind < 85; ind++)
+                        {
+                            MEDarr[ind] = OldMED[ind+1];
+                            STDarr[ind] = OldSTD[ind+1];
+                        }
+                        
+                        MEDarr[85] = MED1;
+                        STDarr[85] = STD1;
+                        
+                        
+                        double MEDlong = 0.00;
+                        double STDlong = 0.00;
+                        for(int ind = 0; ind < 86; ind++)
+                        {
+                            MEDlong += MEDarr[ind];
+                            STDlong += STDarr[ind];
+                        }
+                        MEDlong = MEDlong / 86;
+                        STDlong = sqrt(STDlong / ( (86*getNumSamples(module.inputChan)) - 1.00) );
+                    }
+            
+                    std::cout <<"STDarr[0]: " << STDarr[0]<< std::endl;
+                    std::cout <<"STDarr[1]: " << STDarr[1]<< std::endl;
+                    std::cout <<"STDarr[2]: " << STDarr[2]<< std::endl;
+                    std::cout <<"STDarr[3]: " << STDarr[3]<< std::endl;
+                    std::cout <<"STDarr[4]: " << STDarr[4]<< std::endl;
+                    std::cout <<"STDarr[5]: " << STDarr[5]<< std::endl;
+                    std::cout <<"STDarr[85]: " << STDarr[85]<< std::endl;
+                    std::cout <<"cntLimits: " << module.cntLimits << std::endl;
+                    
             for (int i = 0; i < getNumSamples(module.inputChan); i++)
             {
                 const float sample = *buffer.getReadPointer(module.inputChan, i);
-                
-                if (sample > STD && module.phase != FALLING_POS)
+                if (module.cntLimits > 85 && sample > (MEDlong+ (3*STDlong)) && module.phase != FALLING_POS)
                 {
                     if (module.type == PEAK)
                     {
-                       // std::cout << "GOT EVENT." << std::endl;
+                        //std::cout << "GOT EVENT." << std::endl;
                         addEvent(events, TTL, i, 1, module.outputChan);
                         module.samplesSinceTrigger = 0;
                         module.wasTriggered = true;
@@ -327,6 +363,7 @@ void PhaseDetector::estimateFrequency()
     // }
 
     // estimatedFrequency = getSampleRate()/(float(sum)/float(N));
+
 
 
  
