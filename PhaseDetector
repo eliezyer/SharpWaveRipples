@@ -55,7 +55,7 @@ void PhaseDetector::addModule()
     m.outputChan = -1;
     m.gateChan = -1;
     m.isActive = true;
-    m.lastSample = 0.0f;
+    m.lastSample = 0.0;
     m.type = NONE;
     m.samplesSinceTrigger = 5000;
     m.wasTriggered = false;
@@ -206,31 +206,42 @@ void PhaseDetector::process(AudioSampleBuffer& buffer,
             {
                 if (module.AvgCount < 60000/4)
                 {
-                    module.AvgCount = module.AvgCount++;
+                    module.AvgCount++;
                     float var = RMS[pac];
                     float delta = var - module.MED;
                     module.MED = module.MED + (delta/module.AvgCount); 
                     module.STD = module.STD + delta*(var-module.MED);
+                    std::cout << "Media " << module.MED <<std::endl;
+                    std::cout << "std " << module.MED + sqrt(module.STD/(module.AvgCount*4)) << std::endl;
                 }
                 else
                 {
                     break;
                 }
             }
+            int count = 0;
             for (int i = 0; i < arrSize; i++)
             {
-                float sample = RMS[i];
-                if ( sample > (module.MED + (3*module.STD)) && module.phase != FALLING_POS)
+                const float sample = RMS[i];
+                double threshold = module.MED + 5*sqrt(module.STD/(module.AvgCount*4));
+                //std::cout <<threshold <<std::endl;
+                    if ( sample >=  threshold  ) //&& module.lastSample >= 0 &&module.phase != FALLING_POS)
+                    {
+                    count++;
+                    }
+                
+                if (count == round(arrSize/1.2) )
                 {
                     if (module.type == PEAK)
                     {
-                        std::cout << "GOT EVENT." << std::endl;
+                        std::cout << "Ahhhhh Muleke!!!!" << std::endl;
                         addEvent(events, TTL, i, 1, module.outputChan);
                         module.samplesSinceTrigger = 0;
                         module.wasTriggered = true;
                     }
 
                     module.phase = FALLING_POS;
+                    
 
                 }
                 else if (sample < 0 && module.lastSample >= 0 && module.phase != FALLING_NEG)
